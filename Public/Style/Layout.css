@@ -1,0 +1,15 @@
+.form-block {
+  margin-bottom: 20px;
+}
+
+.table-box {
+  margin-top: 50px;
+  font-size: 0.8rem;
+  /*overflow:auto;max-height:600px;*/
+}
+.table-box .table {
+  /*min-width:100vw;*/
+}
+.table-box .table th, .table-box .table td {
+  text-align: center;
+}

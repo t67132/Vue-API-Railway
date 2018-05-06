@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-TW" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>台鐵查詢資料-太金國際旅行社</title>
+    <meta name="keywords" content="" />
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
+    <link rel="stylesheet" href="Public/Shared/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="Public/Style/Layout.css" />
+    <!--[if lt IE 9 ]><script src="Shared/html5/html5shiv.js"></script><![endif]-->
+</head>
+<body>
+    <div id="TRAApp" class="container">
+        <div class="form-block">
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label>車站列表</label>
+                    <select class="form-control" v-model="StationSelect">
+                        <option v-for="Option in StationOption" v-bind:value="Option.StationID">{{ Option.StationName.Zh_tw }}</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-6">
+                    <label>指定日期</label>
+                    <input v-model="StationDate" type="text" class="form-control" placeholder="格式：2018-01-13" />
+                </div>
+                <!--<div class="form-group col-md-4">
+                    <label>顯示筆數</label>
+                    <select class="form-control" v-model="StationTopSelect">
+                        <option v-for="TopOption in StationTopOption" v-bind:value="TopOption.Num">{{ TopOption.Name }}</option>
+                    </select>
+                </div>-->
+                <input v-on:click="DailyTimetableBtn" type="button" class="btn btn-primary" value="取得指定日期、指定車站的時刻表" />
+            </div>
+        </div>
+        <div class="form-block">
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label>區域/支線</label>
+                    <select class="form-control" v-model="StartLineAreaSelect">
+                        <option v-for="(Option, Index) in StartLineAreaOption" v-bind:value="Index">{{ Option.name }}</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-6">
+                    <label>起站列表</label>
+                    <select class="form-control" v-model="SpecifiedStartSelect" v-if="SpecifiedStartOption.length > 0">
+                        <option v-for="(OptionItem, Key) in SpecifiedStartOption[StartLineAreaSelect].station" v-bind:value="Key">{{ OptionItem }}</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-6">
+                    <label>區域/支線</label>
+                    <select class="form-control" v-model="EndLineAreaSelect">
+                        <option v-for="(Option, Index) in EndLineAreaOption" v-bind:value="Index">{{ Option.name }}</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-6">
+                    <label>迄站列表</label>
+                    <select class="form-control" v-model="SpecifiedEndSelect" v-if="SpecifiedStartOption.length > 0">
+                        <option v-for="(OptionItem, Key) in SpecifiedStartOption[EndLineAreaSelect].station" v-bind:value="Key">{{ OptionItem }}</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-4">
+                    <label>指定日期</label>
+                    <input v-model="SpecifiedDate" type="text" class="form-control" placeholder="格式：2018-01-13" />
+                </div>
+                <div class="form-group col-md-4">
+                    <label>車種</label>
+                    <select class="form-control" v-model="TrainTypeSelect">
+                        <option v-for="Option in TrainTypeOption" v-bind:value="Option.Code">{{ Option.Name }}</option>
+                    </select>
+                </div>
+                <div class="form-group col-md-4">
+                    <label>排序</label>
+                    <select class="form-control" v-model="TimeSortSelect">
+                        <option v-for="Option in TimeSortOption" v-bind:value="Option.Val">{{ Option.Name }}</option>
+                    </select>
+                </div>
+                <!--<div class="form-group col-md-3">
+                    <label>顯示筆數</label>
+                    <select class="form-control" v-model="SpecifiedTopSelect">
+                        <option v-for="TopOption in StationTopOption" v-bind:value="TopOption.Num">{{ TopOption.Name }}</option>
+                    </select>
+                </div>-->
+                <input v-on:click="GeneralTimetableBtn" type="button" class="btn btn-primary" value="取得指定日期、指定時間(出發或到達)的車次" />
+            </div>
+        </div>
+        <div class="form-block">
+            <div class="form-row">
+                <div class="form-group col-md-12">
+                    <label>車次列表</label>
+                    <select class="form-control" v-model="CarTripsSelect">
+                        <option v-for="Option in CarTripsOption" v-bind:value="Option.GeneralTimetable.GeneralTrainInfo.TrainNo">【{{ Option.GeneralTimetable.GeneralTrainInfo.TrainNo }}】-【{{ Option.GeneralTimetable.GeneralTrainInfo.StartingStationName.Zh_tw
+                            }}】到【{{ Option.GeneralTimetable.GeneralTrainInfo.EndingStationName.Zh_tw }}】</option>
+                    </select>
+                </div>
+                <input v-on:click="CarTripsBtn" type="button" class="btn btn-primary" value="取得指定車次的時刻表" />
+            </div>
+        </div>
+        <div class="table-box" v-if="TableSwitch">
+            <table class="table table-dark">
+                <thead>
+                    <tr v-for="item in DailyTimeTableThead" v-if="DailyTimeTableTbody.length > 0">
+                        <th>{{ item.TrainDate }}</th>
+                        <th>{{ item.StationID }}</th>
+                        <th>{{ item.StationName }}</th>
+                        <th>{{ item.TrainNo }}</th>
+                        <th>{{ item.Direction }}</th>
+                        <th>{{ item.TripLine }}</th>
+                        <th>{{ item.TrainClassificationName }}</th>
+                        <th>{{ item.StartingStationName }}</th>
+                        <th>{{ item.EndingStationID }}</th>
+                        <th>{{ item.EndingStationName }}</th>
+                        <th>{{ item.ArrivalTime }}</th>
+                        <th>{{ item.DepartureTime }}</th>
+                    </tr>
+                    <tr v-for="item in DailyTimeTableSpecifiedThead" v-if="DailyTimeTableSpecifiedTbody.length > 0">
+                        <th>{{ item.TrainNo }}</th>
+                        <th>{{ item.OriginStopStationName }}</th>
+                        <!--<th>{{ item.OriginStopArrivalTime }}</th>-->
+                        <th>{{ item.OriginStopDepartureTime }}</th>
+                        <th>{{ item.DestinationStopStationName }}</th>
+                        <th>{{ item.DestinationStopArrivalTime }}</th>
+                        <!--<th>{{ item.DestinationStopDepartureTime }}</th>-->
+                        <th>{{ item.TimeInterval }}</th>
+                        <th>{{ item.Direction }}</th>
+                        <th>{{ item.StartingStationID }}</th>
+                        <th>{{ item.StartingStationName }}</th>
+                        <th>{{ item.EndingStationID }}</th>
+                        <th>{{ item.EndingStationName }}</th>
+                        <!--<th>{{ item.TripHeadsign }}</th>-->
+                        <th>{{ item.TrainTypeCode }}</th>
+                        <!--<th>{{ item.TrainTypeName }}</th>-->
+                        <th>{{ item.TripLine }}</th>
+                        <th>{{ item.OverNightStationID }}</th>
+                        <th>{{ item.WheelchairFlag }}</th>
+                        <th>{{ item.PackageServiceFlag }}</th>
+                        <th>{{ item.DiningFlag }}</th>
+                        <th>{{ item.BikeFlag }}</th>
+                        <th>{{ item.BreastFeedingFlag }}</th>
+                        <th>{{ item.DailyFlag }}</th>
+                        <th>{{ item.ServiceAddedFlag }}</th>
+                        <th>{{ item.Note }}</th>
+                    </tr>
+                    <tr v-for="item in CarTripsThead" v-if="CarTripsTbody.length > 0">
+                        <th>{{ item.StopSequence }}</th>
+                        <th>{{ item.StationID }}</th>
+                        <th>{{ item.StationName }}</th>
+                        <th>{{ item.ArrivalTime }}</th>
+                        <th>{{ item.DepartureTime }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in DailyTimeTableTbody">
+                        <td>{{ item.TrainDate }}</td>
+                        <td>{{ item.StationID }}</td>
+                        <td>{{ item.StationName.Zh_tw }}</td>
+                        <td>{{ item.TrainNo }}</td>
+                        <td>{{ item.Direction }}</td>
+                        <td>{{ item.TripLine }}</td>
+                        <td>{{ item.TrainClassificationName.Zh_tw }}</td>
+                        <td>{{ item.StartingStationName }}</td>
+                        <td>{{ item.EndingStationID }}</td>
+                        <td>{{ item.EndingStationName }}</td>
+                        <td>{{ item.ArrivalTime }}</td>
+                        <td>{{ item.DepartureTime }}</td>
+                    </tr>
+                    <tr v-for="item in DailyTimeTableSpecifiedTbody">
+                        <td>{{ item.DailyTrainInfo.TrainNo }}</td>
+                        <td>{{ item.OriginStopTime.StationName.Zh_tw }}</td>
+                        <!--<td>{{ item.OriginStopTime.ArrivalTime }}</td>-->
+                        <td>{{ item.OriginStopTime.DepartureTime }}</td>
+                        <td>{{ item.DestinationStopTime.StationName.Zh_tw }}</td>
+                        <!--<td>{{ item.DestinationStopTime.ArrivalTime }}</td>-->
+                        <td>{{ item.DestinationStopTime.DepartureTime }}</td>
+                        <td>{{ item.TimeInterval }}</td>
+                        <td>{{ item.DailyTrainInfo.Direction }}</td>
+                        <td>{{ item.DailyTrainInfo.StartingStationID }}</td>
+                        <td>{{ item.DailyTrainInfo.StartingStationName.Zh_tw }}</td>
+                        <td>{{ item.DailyTrainInfo.EndingStationID }}</td>
+                        <td>{{ item.DailyTrainInfo.EndingStationName.Zh_tw }}</td>
+                        <!--<td>{{ item.DailyTrainInfo.TripHeadsign }}</td>-->
+                        <td>{{ item.DailyTrainInfo.TrainTypeCodeName }}</td>
+                        <!--<td>{{ item.DailyTrainInfo.TrainTypeName.Zh_tw }}</td>-->
+                        <td>{{ item.DailyTrainInfo.TripLine }}</td>
+                        <td>{{ item.DailyTrainInfo.OverNightStationID }}</td>
+                        <td>{{ item.DailyTrainInfo.WheelchairFlag }}</td>
+                        <td>{{ item.DailyTrainInfo.PackageServiceFlag }}</td>
+                        <td>{{ item.DailyTrainInfo.DiningFlag }}</td>
+                        <td>{{ item.DailyTrainInfo.BikeFlag }}</td>
+                        <td>{{ item.DailyTrainInfo.BreastFeedingFlag }}</td>
+                        <td>{{ item.DailyTrainInfo.DailyFlag }}</td>
+                        <td>{{ item.DailyTrainInfo.ServiceAddedFlag }}</td>
+                        <td>{{ item.DailyTrainInfo.Note.Zh_tw }}</td>
+                    </tr>
+                    <tr v-for="item in CarTripsTbody">
+                        <td>{{ item.StopSequence }}</td>
+                        <td>{{ item.StationID }}</td>
+                        <td>{{ item.StationName.Zh_tw }}</td>
+                        <td>{{ item.ArrivalTime }}</td>
+                        <td>{{ item.DepartureTime }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="Public/Shared/Vue/vue.min.js"></script>
+    <script src="Public/Shared/Vue/es6-promise.auto.min.js"></script>
+    <script src="Public/Shared/Vue/axios.min.js"></script>
+    <script src="Public/Shared/Vue/polyfill.min.js"></script>
+    <script src="Public/Script/Core/CoreApp.js"></script>
+    <script src="Public/Script/TRAApp.js"></script>
+</body>
+</html>
